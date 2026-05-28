@@ -255,6 +255,71 @@
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="global-nav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-home">← Home</a>
+            <div class="nav-links">
+                <a href="AI-Studio-Mortgage.html">AI Studio</a>
+                <a href="ChatGPT-Mortgage.html">ChatGPT</a>
+                <a href="Claude-Mortgage.html">Claude</a>
+                <a href="DeepSeek-Mortgage.html">DeepSeek</a>
+                <a href="Gemini-Mortgage.html">Gemini</a>
+                <a href="Kimi-Mortgage.html">Kimi</a>
+                <a href="Perplexity-Mortgage.html">Perplexity</a>
+                <a href="Qwen-Mortgage.html">Qwen</a>
+            </div>
+        </div>
+    </nav>
+    <style>
+        .global-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(18, 18, 18, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 12px 0;
+        }
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .nav-home {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: #00f2ff;
+            text-decoration: none;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+        }
+        .nav-home:hover { text-decoration: underline; }
+        .nav-links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .nav-links a {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+        .nav-links a:hover { color: #00f2ff; }
+        @media (max-width: 900px) {
+            .nav-container { flex-direction: column; gap: 10px; }
+            .nav-links { justify-content: center; }
+        }
+    </style>
     <div class="container">
         <h1>Mortgage Calculator</h1>
         
