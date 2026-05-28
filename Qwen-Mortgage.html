@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen Mortgage Calculator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #00f2ff;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --radius: 16px;
+            --spacing: 1.5rem;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing);
+            width: 100%;
+            max-width: 900px;
+        }
+
+        /* Glassmorphism Card Style */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: var(--spacing);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: var(--spacing); text-align: center; grid-column: 1 / -1; }        h2 { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem; }
+
+        /* Input Groups */
+        .input-group { margin-bottom: 1.5rem; }
+        .label-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+        .currency-wrap { position: relative; }
+        .currency-wrap::before { content: '$'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        
+        input[type="number"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 10px 10px 10px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        input[type="number"]:focus { border-color: var(--accent-color); }
+
+        /* Range Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* Results Section */
+        .result-main {
+            text-align: center;
+            margin-bottom: 2rem;        }
+        
+        .monthly-payment {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
+        
+        .sub-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .sub-item {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .sub-label { font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 5px; }
+        .sub-value { font-size: 1.1rem; font-weight: 600; }
+
+        /* Pure CSS Donut Chart */
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .donut {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            /* Conic gradient set via JS */
+            background: conic-gradient(var(--accent-color) 0% 70%, #ff4757 70% 100%);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .donut::after {
+            content: '';
+            position: absolute;
+            width: 140px;            height: 140px;
+            background: var(--bg-color); /* Matches body bg to create hole */
+            border-radius: 50%;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; }
+            .monthly-payment { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Mortgage Calculator</h1>
+
+        <!-- Inputs Column -->
+        <div class="card inputs-card">
+            <h2>Loan Details</h2>
+            
+            <div class="input-group">
+                <div class="label-row">
+                    <label>Loan Amount</label>
+                    <span id="disp-loan"></span>
+                </div>
+                <div class="currency-wrap">
+                    <input type="number" id="in-loan" value="300000" min="0">
+                </div>
+                <input type="range" id="rng-loan" min="10000" max="1000000" step="1000" value="300000">
+            </div>
+
+            <div class="input-group">
+                <div class="label-row">
+                    <label>Interest Rate (%)</label>
+                    <span id="disp-rate"></span>
+                </div>
+                <input type="number" id="in-rate" value="5.5" min="0" max="30" step="0.1">
+                <input type="range" id="rng-rate" min="0.1" max="15" step="0.1" value="5.5">
+            </div>
+            <div class="input-group">
+                <div class="label-row">
+                    <label>Loan Term (Years)</label>
+                    <span id="disp-term"></span>
+                </div>
+                <input type="number" id="in-term" value="30" min="1" max="50">
+                <input type="range" id="rng-term" min="1" max="50" step="1" value="30">
+            </div>
+
+            <div class="input-group">
+                <div class="label-row">
+                    <label>Down Payment</label>
+                    <span id="disp-down"></span>
+                </div>
+                <div class="currency-wrap">
+                    <input type="number" id="in-down" value="60000" min="0">
+                </div>
+                <input type="range" id="rng-down" min="0" max="200000" step="1000" value="60000">
+            </div>
+        </div>
+
+        <!-- Results Column -->
+        <div class="card results-card">
+            <h2>Repayment Breakdown</h2>
+            
+            <div class="result-main">
+                <span class="sub-label">Monthly Payment</span>
+                <div class="monthly-payment" id="res-monthly">$0</div>
+            </div>
+
+            <div class="chart-container">
+                <div class="donut" id="donut-chart"></div>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item"><div class="dot" style="background: var(--accent-color)"></div> Principal</div>
+                <div class="legend-item"><div class="dot" style="background: #ff4757"></div> Interest</div>
+            </div>
+
+            <div class="sub-results">
+                <div class="sub-item">
+                    <span class="sub-label">Total Interest</span>
+                    <div class="sub-value" id="res-interest">$0</div>
+                </div>
+                <div class="sub-item">
+                    <span class="sub-label">Total Cost</span>
+                    <div class="sub-value" id="res-total">$0</div>
+                </div>
+            </div>        </div>
+    </div>
+
+    <script>
+        // Configuration & DOM Elements
+        const STORAGE_KEY = 'mortgageCalcData';
+        
+        const inputs = {
+            loan: { num: document.getElementById('in-loan'), rng: document.getElementById('rng-loan'), disp: document.getElementById('disp-loan') },
+            rate: { num: document.getElementById('in-rate'), rng: document.getElementById('rng-rate'), disp: document.getElementById('disp-rate') },
+            term: { num: document.getElementById('in-term'), rng: document.getElementById('rng-term'), disp: document.getElementById('disp-term') },
+            down: { num: document.getElementById('in-down'), rng: document.getElementById('rng-down'), disp: document.getElementById('disp-down') }
+        };
+
+        const results = {
+            monthly: document.getElementById('res-monthly'),
+            interest: document.getElementById('res-interest'),
+            total: document.getElementById('res-total'),
+            chart: document.getElementById('donut-chart')
+        };
+
+        // Formatter
+        const fmtMoney = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
+        /**
+         * Syncs range slider and number input bidirectionally
+         */
+        function syncInputs(type, key) {
+            const pair = inputs[key];
+            
+            pair.num.addEventListener('input', () => {
+                let val = parseFloat(pair.num.value);
+                if(isNaN(val) || val < 0) val = 0;
+                pair.rng.value = val;
+                calculate();
+            });
+
+            pair.rng.addEventListener('input', () => {
+                pair.num.value = pair.rng.value;
+                calculate();
+            });
+        }
+
+        /**
+         * Core Calculation Logic
+         * Formula: M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1 ]
+         */
+        function calculate() {
+            // Get values
+            const homeValue = parseFloat(inputs.loan.num.value) || 0;            const downPayment = parseFloat(inputs.down.num.value) || 0;
+            const interestRate = parseFloat(inputs.rate.num.value) || 0;
+            const years = parseFloat(inputs.term.num.value) || 0;
+
+            // Derived values
+            const principal = Math.max(0, homeValue - downPayment); // Loan Amount
+            const monthlyRate = interestRate / 100 / 12;
+            const numberOfPayments = years * 12;
+
+            let monthlyPayment = 0;
+            let totalCost = 0;
+            let totalInterest = 0;
+
+            if (principal > 0 && interestRate > 0 && numberOfPayments > 0) {
+                // Standard Amortization Formula
+                const x = Math.pow(1 + monthlyRate, numberOfPayments);
+                monthlyPayment = (principal * x * monthlyRate) / (x - 1);
+                
+                totalCost = monthlyPayment * numberOfPayments;
+                totalInterest = totalCost - principal;
+            } else if (principal > 0 && interestRate === 0) {
+                // 0% Interest edge case
+                monthlyPayment = principal / numberOfPayments;
+                totalCost = principal;
+                totalInterest = 0;
+            }
+
+            updateUI(monthlyPayment, totalInterest, totalCost, principal);
+            saveData();
+        }
+
+        /**
+         * Updates DOM elements and CSS Chart
+         */
+        function updateUI(monthly, interest, total, principal) {
+            results.monthly.textContent = fmtMoney.format(monthly);
+            results.interest.textContent = fmtMoney.format(interest);
+            results.total.textContent = fmtMoney.format(total);
+
+            // Update Chart (Conic Gradient)
+            // Ratio of Principal vs Total Repayment (Principal + Interest)
+            const repaymentTotal = principal + interest;
+            let principalPercent = 0;
+            
+            if (repaymentTotal > 0) {
+                principalPercent = (principal / repaymentTotal) * 100;
+            }
+
+            // Colors: Electric Blue (#00f2ff) for Principal, Red (#ff4757) for Interest
+            results.chart.style.background = `conic-gradient(var(--accent-color) 0% ${principalPercent}%, #ff4757 ${principalPercent}% 100%)`;        }
+
+        /**
+         * Persistence: Save to LocalStorage
+         */
+        function saveData() {
+            const data = {
+                loan: inputs.loan.num.value,
+                rate: inputs.rate.num.value,
+                term: inputs.term.num.value,
+                down: inputs.down.num.value
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        /**
+         * Persistence: Load from LocalStorage
+         */
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    
+                    // Apply values to Number Inputs
+                    if(data.loan) inputs.loan.num.value = data.loan;
+                    if(data.rate) inputs.rate.num.value = data.rate;
+                    if(data.term) inputs.term.num.value = data.term;
+                    if(data.down) inputs.down.num.value = data.down;
+
+                    // Sync Range Sliders to match loaded Number Inputs
+                    Object.keys(inputs).forEach(key => {
+                        inputs[key].rng.value = inputs[key].num.value;
+                    });
+                } catch (e) {
+                    console.error("Failed to load saved data", e);
+                }
+            }
+            calculate();
+        }
+
+        // Initialization
+        Object.keys(inputs).forEach(key => syncInputs('all', key));
+        loadData(); // Triggers initial calc
+
+    </script>
+</body>
+</html>

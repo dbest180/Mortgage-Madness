@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Mortgage Calculator</title>
+  <style>
+    /* ─── CSS Variables ──────────────────────────────────────────── */
+    :root {
+      --bg:            #121212;
+      --bg-secondary:  #1a1a1a;
+      --card-bg:       rgba(255, 255, 255, 0.05);
+      --card-border:   rgba(255, 255, 255, 0.10);
+      --card-radius:   16px;
+      --blur:          blur(10px);
+
+      --accent:        #00f2ff;
+      --accent-dim:    rgba(0, 242, 255, 0.15);
+      --accent-glow:   rgba(0, 242, 255, 0.35);
+
+      --text-primary:  #f0f0f0;
+      --text-secondary:#9e9e9e;
+      --text-muted:    #5e5e5e;
+
+      --interest-color:#ff6b6b;
+      --principal-color: var(--accent);
+
+      --space-xs: 8px;
+      --space-sm: 12px;
+      --space-md: 20px;
+      --space-lg: 32px;
+      --space-xl: 48px;
+
+      --transition: 0.2s ease;
+    }
+
+    /* ─── Reset & Base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Courier New', 'Lucida Console', monospace;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-lg) var(--space-md);
+      /* Subtle noise texture via SVG data URI */
+      background-image:
+        radial-gradient(ellipse at 20% 10%, rgba(0,242,255,0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 90%, rgba(0,100,180,0.05) 0%, transparent 50%);
+    }
+
+    /* ─── Header ─────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: var(--space-lg);
+      width: 100%;
+      max-width: 960px;
+    }
+
+    header h1 {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    header h1 span {
+      color: var(--accent);
+      text-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    header p {
+      margin-top: var(--space-xs);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ─── Layout Grid ────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+      width: 100%;
+      max-width: 960px;
+      align-items: start;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      padding: var(--space-lg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle top-edge accent line */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+      opacity: 0.6;
+    }
+
+    .card-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    /* ─── Input Groups ───────────────────────────────────────────── */
+    .input-group {
+      margin-bottom: var(--space-md);
+    }
+
+    .input-group:last-child { margin-bottom: 0; }
+
+    .input-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-xs);
+    }
+
+    .input-label span:first-child {
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    .input-label .unit {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* Paired input: number field + range slider */
+    .input-pair {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .number-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: var(--space-xs) var(--space-sm);
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      -moz-appearance: textfield;
+    }
+
+    .number-input::-webkit-inner-spin-button,
+    .number-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .number-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-dim);
+    }
+
+    /* Range slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 16px var(--accent);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px; height: 16px;
+      border: none;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      cursor: pointer;
+    }
+
+    /* ─── Results Card ───────────────────────────────────────────── */
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+    }
+
+    .result-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .result-item.featured {
+      grid-column: 1 / -1;
+      background: var(--accent-dim);
+      border-color: rgba(0,242,255,0.3);
+      text-align: center;
+      padding: var(--space-md);
+    }
+
+    .result-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .result-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .result-item.featured .result-label {
+      font-size: 0.65rem;
+      color: rgba(0,242,255,0.7);
+    }
+
+    .result-item.featured .result-value {
+      font-size: clamp(2rem, 6vw, 2.8rem);
+      color: var(--accent);
+      text-shadow: 0 0 24px var(--accent-glow);
+      line-height: 1;
+    }
+
+    /* ─── Donut Chart (pure CSS conic-gradient) ──────────────────── */
+    .chart-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    .donut-wrap {
+      position: relative;
+      width: 160px; height: 160px;
+    }
+
+    .donut {
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      /* conic-gradient updated by JS via custom property */
+      background: conic-gradient(
+        var(--principal-color) 0deg var(--principal-deg, 180deg),
+        var(--interest-color) var(--principal-deg, 180deg) 360deg
+      );
+      box-shadow: 0 0 20px rgba(0,242,255,0.15);
+      transition: background 0.4s ease;
+    }
+
+    /* hollow center */
+    .donut::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px; height: 90px;
+      background: var(--bg-secondary);
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+    }
+
+    /* center label */
+    .donut-label {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .donut-label .pct {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 10px var(--accent-glow);
+      line-height: 1;
+    }
+
+    .donut-label .sub {
+      display: block;
+      font-size: 0.52rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: var(--space-md);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 2px;
+    }
+
+    .legend-dot.principal { background: var(--principal-color); box-shadow: 0 0 6px var(--accent-glow); }
+    .legend-dot.interest  { background: var(--interest-color); box-shadow: 0 0 6px rgba(255,107,107,0.4); }
+
+    /* ─── Footer ─────────────────────────────────────────────────── */
+    footer {
+      margin-top: var(--space-lg);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    /* ─── Validation flash ───────────────────────────────────────── */
+    .number-input.error {
+      border-color: var(--interest-color);
+      box-shadow: 0 0 0 2px rgba(255,107,107,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Mortgage <span>Calculator</span></h1>
+    <p>Real-time amortization &mdash; offline capable</p>
+  </header>
+
+  <main class="grid">
+
+    <!-- ── Left: Inputs ── -->
+    <section class="card" aria-label="Mortgage Inputs">
+      <p class="card-title">Loan Parameters</p>
+
+      <!-- Loan Amount -->
+      <div class="input-group">
+        <div class="input-label">
+          <span>Home Price</span>
+          <span class="unit">USD</span>
+        </div>
+        <div class="input-pair">
+          <input class="number-input" type="number" id="loanAmount"
+                 min="10000" max="10000000" step="1000"
+                 value="400000" aria-label="Home price in USD" />
+          <input type="range" id="loanAmountRange"
+                 min="10000" max="2000000" step="1000" value="400000"
+                 aria-label="Home price slider" />
+        </div>
+      </div>
+
+      <!-- Down Payment -->
+      <div class="input-group">
+        <div class="input-label">
+          <span>Down Payment</span>
+          <span class="unit">USD</span>
+        </div>
+        <div class="input-pair">
+          <input class="number-input" type="number" id="downPayment"
+                 min="0" max="9999999" step="500"
+                 value="80000" aria-label="Down payment in USD" />
+          <input type="range" id="downPaymentRange"
+                 min="0" max="500000" step="500" value="80000"
+                 aria-label="Down payment slider" />
+        </div>
+      </div>
+
+      <!-- Interest Rate -->
+      <div class="input-group">
+        <div class="input-label">
+          <span>Interest Rate</span>
+          <span class="unit">% / yr</span>
+        </div>
+        <div class="input-pair">
+          <input class="number-input" type="number" id="interestRate"
+                 min="0.1" max="30" step="0.05"
+                 value="6.75" aria-label="Annual interest rate percent" />
+          <input type="range" id="interestRateRange"
+                 min="0.1" max="20" step="0.05" value="6.75"
+                 aria-label="Interest rate slider" />
+        </div>
+      </div>
+
+      <!-- Loan Term -->
+      <div class="input-group">
+        <div class="input-label">
+          <span>Loan Term</span>
+          <span class="unit">Years</span>
+        </div>
+        <div class="input-pair">
+          <input class="number-input" type="number" id="loanTerm"
+                 min="1" max="50" step="1"
+                 value="30" aria-label="Loan term in years" />
+          <input type="range" id="loanTermRange"
+                 min="1" max="50" step="1" value="30"
+                 aria-label="Loan term slider" />
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── Right: Results ── -->
+    <section class="card" aria-label="Mortgage Results">
+      <p class="card-title">Amortization Summary</p>
+
+      <div class="results-grid">
+        <!-- Monthly payment — featured -->
+        <div class="result-item featured">
+          <div class="result-label">Monthly Payment</div>
+          <div class="result-value" id="monthlyPayment">—</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-label">Loan Principal</div>
+          <div class="result-value" id="principalAmount">—</div>
+        </div>
+
+        <div class="result-item">
+          <div class="result-label">Total Interest</div>
+          <div class="result-value" id="totalInterest">—</div>
+        </div>
+
+        <div class="result-item" style="grid-column:1/-1">
+          <div class="result-label">Total Cost (Principal + Interest)</div>
+          <div class="result-value" id="totalCost">—</div>
+        </div>
+      </div>
+
+      <!-- Donut chart -->
+      <div class="chart-section">
+        <div class="donut-wrap">
+          <div class="donut" id="donutChart" role="img" aria-label="Principal vs Interest donut chart"></div>
+          <div class="donut-label">
+            <span class="pct" id="principalPct">—</span>
+            <span class="sub">Principal</span>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot principal"></div>
+            <span>Principal</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot interest"></div>
+            <span>Interest</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer>Auto-saved &bull; All calculations run locally &bull; No data transmitted</footer>
+
+  <script>
+    /* ═══════════════════════════════════════════════════════════════
+       Mortgage Calculator — Vanilla JS
+       ═══════════════════════════════════════════════════════════════ */
+
+    const LS_KEY = 'mortgageCalcData';
+
+    /* ── DOM refs ────────────────────────────────────────── */
+    const els = {
+      loanAmount:       document.getElementById('loanAmount'),
+      loanAmountRange:  document.getElementById('loanAmountRange'),
+      downPayment:      document.getElementById('downPayment'),
+      downPaymentRange: document.getElementById('downPaymentRange'),
+      interestRate:     document.getElementById('interestRate'),
+      interestRateRange:document.getElementById('interestRateRange'),
+      loanTerm:         document.getElementById('loanTerm'),
+      loanTermRange:    document.getElementById('loanTermRange'),
+
+      monthlyPayment:   document.getElementById('monthlyPayment'),
+      principalAmount:  document.getElementById('principalAmount'),
+      totalInterest:    document.getElementById('totalInterest'),
+      totalCost:        document.getElementById('totalCost'),
+      donutChart:       document.getElementById('donutChart'),
+      principalPct:     document.getElementById('principalPct'),
+    };
+
+    /* ── Helpers ─────────────────────────────────────────── */
+
+    /**
+     * Format a number as USD currency string.
+     * @param {number} n
+     * @returns {string}
+     */
+    function fmtUSD(n) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency', currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(n);
+    }
+
+    /**
+     * Clamp value between min and max.
+     * @param {number} val
+     * @param {number} min
+     * @param {number} max
+     * @returns {number}
+     */
+    function clamp(val, min, max) {
+      return Math.min(Math.max(val, min), max);
+    }
+
+    /**
+     * Read a numeric input's value; returns NaN if invalid/empty.
+     * @param {HTMLInputElement} el
+     * @returns {number}
+     */
+    function readNum(el) {
+      const v = parseFloat(el.value);
+      return isNaN(v) ? NaN : v;
+    }
+
+    /* ── Calculation Core ────────────────────────────────── */
+
+    /**
+     * Calculate monthly mortgage payment using standard amortization formula.
+     *
+     * Formula:
+     *   M = P * [ r(1+r)^n ] / [ (1+r)^n - 1 ]
+     *
+     * Where:
+     *   P = principal (loan amount - down payment)
+     *   r = monthly interest rate  (annual% / 12 / 100)
+     *   n = total number of payments (years * 12)
+     *
+     * Edge-case: if r === 0 (zero-interest), M = P / n
+     */
+    function calculate() {
+      const homePrice    = readNum(els.loanAmount);
+      const downPayment  = readNum(els.downPayment);
+      const annualRate   = readNum(els.interestRate);
+      const termYears    = readNum(els.loanTerm);
+
+      /* Validate: all must be positive numbers */
+      const valid =
+        !isNaN(homePrice)   && homePrice > 0 &&
+        !isNaN(downPayment) && downPayment >= 0 &&
+        downPayment < homePrice &&
+        !isNaN(annualRate)  && annualRate >= 0 &&
+        !isNaN(termYears)   && termYears >= 1;
+
+      if (!valid) {
+        ['monthlyPayment','principalAmount','totalInterest','totalCost','principalPct']
+          .forEach(id => { els[id].textContent = '—'; });
+        return;
+      }
+
+      const P = homePrice - downPayment;            // principal
+      const r = annualRate / 100 / 12;              // monthly rate
+      const n = Math.round(termYears * 12);         // total payments
+
+      let monthlyPayment;
+      if (r === 0) {
+        /* Zero interest edge-case */
+        monthlyPayment = P / n;
+      } else {
+        /* Standard amortization formula */
+        const compounded = Math.pow(1 + r, n);
+        monthlyPayment = P * (r * compounded) / (compounded - 1);
+      }
+
+      const totalCost     = monthlyPayment * n;
+      const totalInterest = totalCost - P;
+
+      /* Update result elements */
+      els.monthlyPayment.textContent  = fmtUSD(monthlyPayment);
+      els.principalAmount.textContent = fmtUSD(P);
+      els.totalInterest.textContent   = fmtUSD(totalInterest);
+      els.totalCost.textContent       = fmtUSD(totalCost);
+
+      updateChart(P, totalInterest);
+      saveData();
+    }
+
+    /* ── Chart ───────────────────────────────────────────── */
+
+    /**
+     * Update the CSS conic-gradient donut chart.
+     * Principal slice occupies (P / totalCost * 360) degrees.
+     *
+     * @param {number} principal
+     * @param {number} interest
+     */
+    function updateChart(principal, interest) {
+      const total = principal + interest;
+      if (total <= 0) return;
+
+      const principalPct = principal / total;
+      const degrees      = principalPct * 360;
+
+      /* Pass degrees to CSS via custom property */
+      els.donutChart.style.setProperty('--principal-deg', `${degrees.toFixed(2)}deg`);
+
+      els.principalPct.textContent = `${Math.round(principalPct * 100)}%`;
+    }
+
+    /* ── Persistence ─────────────────────────────────────── */
+
+    /**
+     * Save current input values to localStorage.
+     */
+    function saveData() {
+      const data = {
+        loanAmount:   els.loanAmount.value,
+        downPayment:  els.downPayment.value,
+        interestRate: els.interestRate.value,
+        loanTerm:     els.loanTerm.value,
+      };
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
+      } catch (e) {
+        /* localStorage unavailable (e.g. private mode quota) — silently skip */
+      }
+    }
+
+    /**
+     * Load saved values from localStorage and populate inputs.
+     * Falls back to default values already set in HTML if key absent.
+     */
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        if (data.loanAmount !== undefined)   setInput(els.loanAmount,  els.loanAmountRange,  data.loanAmount);
+        if (data.downPayment !== undefined)  setInput(els.downPayment, els.downPaymentRange, data.downPayment);
+        if (data.interestRate !== undefined) setInput(els.interestRate,els.interestRateRange,data.interestRate);
+        if (data.loanTerm !== undefined)     setInput(els.loanTerm,    els.loanTermRange,    data.loanTerm);
+      } catch (e) {
+        /* Corrupt storage — silently ignore, keep defaults */
+      }
+    }
+
+    /* ── Bidirectional Sync ──────────────────────────────── */
+
+    /**
+     * Set both a number input and its paired range slider to the same value.
+     * @param {HTMLInputElement} numEl  - number input
+     * @param {HTMLInputElement} rangeEl - range slider
+     * @param {string|number}   val     - value to set
+     */
+    function setInput(numEl, rangeEl, val) {
+      numEl.value   = val;
+      rangeEl.value = val;
+    }
+
+    /**
+     * Bind a number input and range slider so each mirrors the other,
+     * then triggers calculate() on any change.
+     *
+     * @param {HTMLInputElement} numEl
+     * @param {HTMLInputElement} rangeEl
+     * @param {{min:number, max:number}} bounds
+     */
+    function bindPair(numEl, rangeEl, bounds) {
+
+      numEl.addEventListener('input', () => {
+        numEl.classList.remove('error');
+
+        let v = parseFloat(numEl.value);
+
+        /* Validate */
+        if (isNaN(v) || v < bounds.min) {
+          numEl.classList.add('error');
+        } else {
+          v = clamp(v, bounds.min, bounds.max);
+          /* Only clamp display if out of slider range; allow wider typed values */
+          rangeEl.value = Math.min(v, parseFloat(rangeEl.max));
+        }
+        calculate();
+      });
+
+      rangeEl.addEventListener('input', () => {
+        numEl.classList.remove('error');
+        numEl.value = rangeEl.value;
+        calculate();
+      });
+    }
+
+    /* ── Initialise ──────────────────────────────────────── */
+
+    (function init() {
+
+      /* Bind each input pair */
+      bindPair(els.loanAmount,  els.loanAmountRange,  { min: 10000,  max: 10000000 });
+      bindPair(els.downPayment, els.downPaymentRange, { min: 0,      max: 9999999  });
+      bindPair(els.interestRate,els.interestRateRange,{ min: 0.1,    max: 30       });
+      bindPair(els.loanTerm,    els.loanTermRange,    { min: 1,      max: 50       });
+
+      /* Restore saved values (overrides HTML defaults) */
+      loadData();
+
+      /* Run initial calculation */
+      calculate();
+
+    })();
+
+  </script>
+</body>
+</html>

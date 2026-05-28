@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Mortgage Calculator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #00f2ff;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --input-bg: rgba(255, 255, 255, 0.08);
+            --radius: 16px;
+            --spacing: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--spacing);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing);
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .input-group {
+            margin-bottom: var(--spacing);
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="number"] {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 120px;
+            text-align: right;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-color);
+            background: var(--input-bg);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .results-display {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .main-result {
+            margin-bottom: var(--spacing);
+        }
+
+        .main-result p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .main-result .value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            line-height: 1.2;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing);
+            margin-bottom: var(--spacing);
+        }
+
+        .stat-item p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .stat-item .value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: auto;
+            padding: 10px 0;
+        }
+
+        .donut-chart {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: conic-gradient(var(--accent-color) 0% 50%, var(--input-bg) 50% 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .donut-chart::before {
+            content: '';
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            background: #1c1c1e;
+            border-radius: 50%;
+        }
+
+        .chart-legend {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .color-principal { background-color: var(--accent-color); }
+        .color-interest { background-color: var(--input-bg); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <main class="card">
+            <h2>Loan Details</h2>
+            
+            <div class="input-group">
+                <div class="input-header">
+                    <label for="homeValue">Home Value ($)</label>
+                    <input type="number" id="homeValue" min="0" value="400000">
+                </div>
+                <input type="range" id="homeValueSlider" min="50000" max="2000000" step="5000" value="400000">
+            </div>
+
+            <div class="input-group">
+                <div class="input-header">
+                    <label for="downPayment">Down Payment ($)</label>
+                    <input type="number" id="downPayment" min="0" value="80000">
+                </div>
+                <input type="range" id="downPaymentSlider" min="0" max="500000" step="1000" value="80000">
+            </div>
+
+            <div class="input-group">
+                <div class="input-header">
+                    <label for="interestRate">Interest Rate (%)</label>
+                    <input type="number" id="interestRate" min="0" max="25" step="0.01" value="6.5">
+                </div>
+                <input type="range" id="interestRateSlider" min="0.1" max="15" step="0.1" value="6.5">
+            </div>
+
+            <div class="input-group">
+                <div class="input-header">
+                    <label for="loanTerm">Loan Term (Years)</label>
+                    <input type="number" id="loanTerm" min="1" max="50" value="30">
+                </div>
+                <input type="range" id="loanTermSlider" min="5" max="40" step="5" value="30">
+            </div>
+        </main>
+
+        <section class="card results-display">
+            <div class="main-result">
+                <p>Estimated Monthly Payment</p>
+                <div class="value" id="monthlyPaymentDisplay">$0.00</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <p>Principal Amount</p>
+                    <div class="value" id="principalDisplay">$0.00</div>
+                </div>
+                <div class="stat-item">
+                    <p>Total Interest Paid</p>
+                    <div class="value" id="totalInterestDisplay">$0.00</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="donut-chart" id="ratioChart">
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-color color-principal"></span>
+                            <span>Principal</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color color-interest"></span>
+                            <span>Interest</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // DOM Elements
+        const inputs = {
+            homeValue: document.getElementById('homeValue'),
+            homeValueSlider: document.getElementById('homeValueSlider'),
+            downPayment: document.getElementById('downPayment'),
+            downPaymentSlider: document.getElementById('downPaymentSlider'),
+            interestRate: document.getElementById('interestRate'),
+            interestRateSlider: document.getElementById('interestRateSlider'),
+            loanTerm: document.getElementById('loanTerm'),
+            loanTermSlider: document.getElementById('loanTermSlider')
+        };
+
+        const outputs = {
+            monthlyPayment: document.getElementById('monthlyPaymentDisplay'),
+            principal: document.getElementById('principalDisplay'),
+            totalInterest: document.getElementById('totalInterestDisplay'),
+            chart: document.getElementById('ratioChart')
+        };
+
+        const STORAGE_KEY = 'mortgageCalcData';
+
+        // Initialization
+        function init() {
+            setupEventListeners();
+            loadData();
+            calculate();
+        }
+
+        // Bidirectional synchronization and data binding
+        function setupEventListeners() {
+            const pairs = [
+                ['homeValue', 'homeValueSlider'],
+                ['downPayment', 'downPaymentSlider'],
+                ['interestRate', 'interestRateSlider'],
+                ['loanTerm', 'loanTermSlider']
+            ];
+
+            pairs.forEach(([numId, slideId]) => {
+                const numInput = inputs[numId];
+                const slider = inputs[slideId];
+
+                numInput.addEventListener('input', () => {
+                    let val = parseFloat(numInput.value) || 0;
+                    if (val < 0) val = 0;
+                    slider.value = val;
+                    
+                    // Caps the down payment max range dynamically based on home value
+                    if (numId === 'homeValue') {
+                        inputs.downPaymentSlider.max = val;
+                        if (parseFloat(inputs.downPayment.value) > val) {
+                            inputs.downPayment.value = val;
+                            inputs.downPaymentSlider.value = val;
+                        }
+                    }
+                    
+                    calculate();
+                    saveData();
+                });
+
+                slider.addEventListener('input', () => {
+                    numInput.value = slider.value;
+                    
+                    if (slideId === 'homeValueSlider') {
+                        inputs.downPaymentSlider.max = slider.value;
+                        if (parseFloat(inputs.downPayment.value) > parseFloat(slider.value)) {
+                            inputs.downPayment.value = slider.value;
+                            inputs.downPaymentSlider.value = slider.value;
+                        }
+                    }
+
+                    calculate();
+                    saveData();
+                });
+            });
+        }
+
+        // Core logic calculations
+        function calculate() {
+            const homeValue = Math.max(0, parseFloat(inputs.homeValue.value) || 0);
+            const downPayment = Math.max(0, parseFloat(inputs.downPayment.value) || 0);
+            const annualRate = Math.max(0, parseFloat(inputs.interestRate.value) || 0);
+            const years = Math.max(1, parseInt(inputs.loanTerm.value) || 0);
+
+            // Principal Loan Amount
+            const principal = Math.max(0, homeValue - downPayment);
+            
+            // Monthly Interest Rate calculation
+            const monthlyRate = (annualRate / 100) / 12;
+            
+            // Total number of payments
+            const totalPayments = years * 12;
+
+            let monthlyPayment = 0;
+
+            // Standard Fixed-Rate Mortgage Formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            if (principal > 0) {
+                if (monthlyRate === 0) {
+                    monthlyPayment = principal / totalPayments;
+                } else {
+                    const ratePow = Math.pow(1 + monthlyRate, totalPayments);
+                    monthlyPayment = principal * (monthlyRate * ratePow) / (ratePow - 1);
+                }
+            }
+
+            const totalCost = monthlyPayment * totalPayments;
+            const totalInterest = Math.max(0, totalCost - principal);
+
+            updateDOM(monthlyPayment, principal, totalInterest);
+        }
+
+        // Mutation updates
+        function updateDOM(monthly, principal, interest) {
+            outputs.monthlyPayment.textContent = formatCurrency(monthly);
+            outputs.principal.textContent = formatCurrency(principal);
+            outputs.totalInterest.textContent = formatCurrency(interest);
+
+            updateChart(principal, interest);
+        }
+
+        // Pure CSS visualization generator
+        function updateChart(principal, interest) {
+            const total = principal + interest;
+            if (total === 0) {
+                outputs.chart.style.background = `conic-gradient(var(--input-bg) 0% 100%)`;
+                return;
+            }
+
+            const principalPercentage = (principal / total) * 100;
+            
+            // Renders the donut slices via conic gradient breaks
+            outputs.chart.style.background = `conic-gradient(
+                var(--accent-color) 0% ${principalPercentage}%, 
+                var(--input-bg) ${principalPercentage}% 100%
+            )`;
+        }
+
+        // Format utility
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(num);
+        }
+
+        // Web Storage Integration
+        function saveData() {
+            const data = {
+                homeValue: inputs.homeValue.value,
+                downPayment: inputs.downPayment.value,
+                interestRate: inputs.interestRate.value,
+                loanTerm: inputs.loanTerm.value
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function loadData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return;
+
+            try {
+                const data = JSON.parse(stored);
+                
+                // Bind saved inputs back to DOM architecture
+                if(data.homeValue) {
+                    inputs.homeValue.value = data.homeValue;
+                    inputs.homeValueSlider.value = data.homeValue;
+                    inputs.downPaymentSlider.max = data.homeValue;
+                }
+                if(data.downPayment) {
+                    inputs.downPayment.value = data.downPayment;
+                    inputs.downPaymentSlider.value = data.downPayment;
+                }
+                if(data.interestRate) {
+                    inputs.interestRate.value = data.interestRate;
+                    inputs.interestRateSlider.value = data.interestRate;
+                }
+                if(data.loanTerm) {
+                    inputs.loanTerm.value = data.loanTerm;
+                    inputs.loanTermSlider.value = data.loanTerm;
+                }
+            } catch (e) {
+                console.error("Error structuralizing local storage extraction parsing: ", e);
+            }
+        }
+
+        // Entry point acceleration
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

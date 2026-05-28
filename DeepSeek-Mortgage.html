@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>DeepSeek Mortgage Calculator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* ---------- CSS VARIABLES (Dark Glassmorphic System) ---------- */
+    :root {
+      --bg-deep: #121212;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-blue: #00f2ff;
+      --accent-glow: rgba(0, 242, 255, 0.2);
+      --text-primary: #f0f0f0;
+      --text-secondary: #b0b0b0;
+      --interest-color: #ff6b6b;
+      --principal-color: #00f2ff;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --spacing: 24px;
+      --transition: all 0.2s ease;
+    }
+
+    body {
+      background: var(--bg-deep);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      color: var(--text-primary);
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* main grid container */
+    .mortgage-grid {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing);
+      align-items: start;
+    }
+
+    /* glass cards */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 1.8rem;
+      transition: var(--transition);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(0, 242, 255, 0.3);
+    }
+
+    /* headings */
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid var(--accent-blue);
+      padding-left: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      margin: 1rem 0 0.8rem 0;
+      color: var(--text-secondary);
+    }
+
+    /* form groups (paired sliders + numbers) */
+    .input-group {
+      margin-bottom: 1.8rem;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .label-row span:first-child {
+      letter-spacing: 0.2px;
+    }
+
+    .label-row .value-highlight {
+      color: var(--accent-blue);
+      font-weight: 600;
+      background: rgba(0, 242, 255, 0.1);
+      padding: 0.2rem 0.6rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+    }
+
+    /* double control wrapper */
+    .dual-control {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    input[type="range"] {
+      flex: 3;
+      min-width: 140px;
+      height: 5px;
+      -webkit-appearance: none;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      outline: none;
+    }
+
+    input[type="range"]:focus {
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent-blue);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--accent-blue);
+      border: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    input[type="number"] {
+      flex: 1;
+      background: rgba(10, 10, 20, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 0.8rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 1rem;
+      text-align: center;
+      backdrop-filter: blur(4px);
+      transition: var(--transition);
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* result area */
+    .monthly-payment {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed rgba(255,255,255,0.15);
+    }
+
+    .monthly-label {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    .monthly-amount {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--accent-blue);
+      line-height: 1.2;
+      text-shadow: 0 0 8px rgba(0,242,255,0.3);
+      word-break: break-word;
+    }
+
+    .summary-stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: rgba(0,0,0,0.3);
+      border-radius: var(--radius-md);
+      padding: 0.8rem;
+      flex: 1;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .stat-number {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: white;
+      margin-top: 0.3rem;
+    }
+
+    /* donut chart */
+    .chart-container {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+
+    .donut-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .donut {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: conic-gradient(var(--principal-color) 0deg, var(--interest-color) 0deg);
+      transition: background 0.2s ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    /* inner hole for donut effect */
+    .donut-hole {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: #121212;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: var(--text-secondary);
+    }
+
+    .donut-hole span:first-child {
+      color: var(--principal-color);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+    }
+
+    .legend-color {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .legend-principal {
+      background: var(--principal-color);
+    }
+
+    .legend-interest {
+      background: var(--interest-color);
+    }
+
+    /* mobile responsive */
+    @media (max-width: 780px) {
+      body {
+        padding: 1.2rem;
+      }
+      .mortgage-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .glass-card {
+        padding: 1.4rem;
+      }
+      .monthly-amount {
+        font-size: 2.4rem;
+      }
+      .donut {
+        width: 150px;
+        height: 150px;
+      }
+      .donut-hole {
+        width: 65px;
+        height: 65px;
+      }
+    }
+
+    /* subtle foot note */
+    .footnote {
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 1rem;
+      color: rgba(255,255,255,0.3);
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<div class="mortgage-grid">
+  <!-- LEFT: INPUT CARD -->
+  <div class="glass-card">
+    <h2>📐 Mortgage Details</h2>
+
+    <!-- Loan Amount (Property Price) -->
+    <div class="input-group">
+      <div class="label-row">
+        <span>🏠 Property Price (Loan Amount)</span>
+        <span id="loanAmountLabel" class="value-highlight">$0</span>
+      </div>
+      <div class="dual-control">
+        <input type="range" id="loanRange" min="0" max="2000000" step="1000" value="300000">
+        <input type="number" id="loanNumber" min="0" max="2000000" step="1000" value="300000">
+      </div>
+    </div>
+
+    <!-- Down Payment -->
+    <div class="input-group">
+      <div class="label-row">
+        <span>💰 Down Payment</span>
+        <span id="downPaymentLabel" class="value-highlight">$0</span>
+      </div>
+      <div class="dual-control">
+        <input type="range" id="downRange" min="0" max="2000000" step="1000" value="60000">
+        <input type="number" id="downNumber" min="0" max="2000000" step="1000" value="60000">
+      </div>
+    </div>
+
+    <!-- Interest Rate (%) -->
+    <div class="input-group">
+      <div class="label-row">
+        <span>📈 Interest Rate (%)</span>
+        <span id="rateLabel" class="value-highlight">0%</span>
+      </div>
+      <div class="dual-control">
+        <input type="range" id="rateRange" min="0" max="30" step="0.125" value="5">
+        <input type="number" id="rateNumber" min="0" max="30" step="0.125" value="5">
+      </div>
+    </div>
+
+    <!-- Loan Term (Years) -->
+    <div class="input-group">
+      <div class="label-row">
+        <span>⏱️ Loan Term (years)</span>
+        <span id="termLabel" class="value-highlight">0 yrs</span>
+      </div>
+      <div class="dual-control">
+        <input type="range" id="termRange" min="1" max="40" step="1" value="30">
+        <input type="number" id="termNumber" min="1" max="40" step="1" value="30">
+      </div>
+    </div>
+    <div class="footnote">⚡ Adjust any slider or number — updates automatically</div>
+  </div>
+
+  <!-- RIGHT: RESULTS + DONUT CHART -->
+  <div class="glass-card">
+    <h2>📊 Payment Breakdown</h2>
+    <div class="monthly-payment">
+      <div class="monthly-label">Monthly Payment</div>
+      <div class="monthly-amount" id="monthlyDisplay">$0.00</div>
+    </div>
+
+    <div class="summary-stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Interest</div>
+        <div class="stat-number" id="totalInterestDisplay">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Cost</div>
+        <div class="stat-number" id="totalCostDisplay">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Principal Financed</div>
+        <div class="stat-number" id="principalFinanced">$0</div>
+      </div>
+    </div>
+
+    <!-- Donut chart (Principal vs Interest ratio) -->
+    <div class="chart-container">
+      <h3>🏦 Principal vs Interest</h3>
+      <div class="donut-wrapper">
+        <div class="donut" id="donutChart"></div>
+        <div class="donut-hole" id="donutHoleText">
+          <span id="principalPercent">0%</span>
+          <span style="font-size: 0.65rem;">Principal</span>
+        </div>
+      </div>
+      <div class="legend">
+        <div><span class="legend-color legend-principal"></span> Principal</div>
+        <div><span class="legend-color legend-interest"></span> Interest</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ---------- DOM Elements ----------
+    // Loan Amount
+    const loanRange = document.getElementById('loanRange');
+    const loanNumber = document.getElementById('loanNumber');
+    // Down Payment
+    const downRange = document.getElementById('downRange');
+    const downNumber = document.getElementById('downNumber');
+    // Interest Rate
+    const rateRange = document.getElementById('rateRange');
+    const rateNumber = document.getElementById('rateNumber');
+    // Term
+    const termRange = document.getElementById('termRange');
+    const termNumber = document.getElementById('termNumber');
+
+    // Labels for live formatting
+    const loanAmountLabel = document.getElementById('loanAmountLabel');
+    const downPaymentLabel = document.getElementById('downPaymentLabel');
+    const rateLabel = document.getElementById('rateLabel');
+    const termLabel = document.getElementById('termLabel');
+
+    // Results elements
+    const monthlyDisplay = document.getElementById('monthlyDisplay');
+    const totalInterestDisplay = document.getElementById('totalInterestDisplay');
+    const totalCostDisplay = document.getElementById('totalCostDisplay');
+    const principalFinancedSpan = document.getElementById('principalFinanced');
+    const donutChart = document.getElementById('donutChart');
+    const principalPercentSpan = document.getElementById('principalPercent');
+
+    // ---------- Helper: update label formatting ----------
+    function updateLabels() {
+      let loanVal = parseFloat(loanNumber.value) || 0;
+      let downVal = parseFloat(downNumber.value) || 0;
+      let rateVal = parseFloat(rateNumber.value) || 0;
+      let termVal = parseInt(termNumber.value, 10) || 1;
+      loanAmountLabel.textContent = `$${loanVal.toLocaleString(undefined, {maximumFractionDigits:0})}`;
+      downPaymentLabel.textContent = `$${downVal.toLocaleString(undefined, {maximumFractionDigits:0})}`;
+      rateLabel.textContent = `${rateVal.toFixed(2)}%`;
+      termLabel.textContent = `${termVal} yr${termVal !== 1 ? 's' : ''}`;
+    }
+
+    // ---------- Constraint: down payment cannot exceed loan amount ----------
+    function enforceDownPaymentLimit() {
+      let loan = parseFloat(loanNumber.value) || 0;
+      let down = parseFloat(downNumber.value) || 0;
+      if (down > loan) {
+        down = loan;
+        // Update both UI controls without causing recursion issues
+        downNumber.value = down;
+        downRange.value = down;
+      }
+      // also ensure not negative values
+      if (down < 0) down = 0;
+      if (loan < 0) loanNumber.value = 0;
+      downNumber.value = Math.max(0, down);
+      downRange.value = Math.max(0, down);
+    }
+
+    // ---------- Mortgage Math ----------
+    // Formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
+    // P = principal (loan amount - down payment), r = monthly rate, n = months
+    function computeMortgage() {
+      // get raw values
+      let loanAmount = parseFloat(loanNumber.value) || 0;
+      let downPayment = parseFloat(downNumber.value) || 0;
+      let annualRate = parseFloat(rateNumber.value) || 0;
+      let years = parseInt(termNumber.value, 10) || 1;
+      
+      // validation: positive numbers only
+      loanAmount = Math.max(0, loanAmount);
+      downPayment = Math.max(0, downPayment);
+      if (downPayment > loanAmount) downPayment = loanAmount; // secondary constraint
+      annualRate = Math.max(0, annualRate);
+      years = Math.max(1, years);
+      
+      const principal = loanAmount - downPayment;
+      const monthlyRate = annualRate / 100 / 12;
+      const months = years * 12;
+      let monthlyPayment = 0;
+      let totalCost = 0;
+      let totalInterest = 0;
+      
+      if (principal <= 0) {
+        monthlyPayment = 0;
+        totalCost = 0;
+        totalInterest = 0;
+      } else if (annualRate === 0) {
+        // Zero-interest edge case: equal monthly installments
+        monthlyPayment = principal / months;
+        totalCost = principal;
+        totalInterest = 0;
+      } else {
+        const factor = Math.pow(1 + monthlyRate, months);
+        monthlyPayment = principal * (monthlyRate * factor) / (factor - 1);
+        totalCost = monthlyPayment * months;
+        totalInterest = totalCost - principal;
+      }
+      
+      // Update DOM results
+      monthlyDisplay.textContent = `$${monthlyPayment.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+      totalInterestDisplay.textContent = `$${totalInterest.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}`;
+      totalCostDisplay.textContent = `$${totalCost.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}`;
+      principalFinancedSpan.textContent = `$${principal.toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0})}`;
+      
+      return { principal, totalInterest, totalCost, monthlyPayment };
+    }
+    
+    // ---------- Pure CSS Conic-Gradient Donut Chart (Principal vs Interest ratio) ----------
+    function updateDonutChart(principal, totalInterest, totalCost) {
+      if (totalCost <= 0 || principal <= 0) {
+        // No principal or zero cost -> chart shows neutral (full interest grayish or empty)
+        donutChart.style.background = `conic-gradient(#555 0deg, #555 360deg)`;
+        principalPercentSpan.textContent = `0%`;
+        return;
+      }
+      // Calculate ratio: principal share of total cost, interest share
+      let principalShare = (principal / totalCost) * 100;
+      // Clamp between 0 and 100
+      principalShare = Math.min(100, Math.max(0, principalShare));
+      const interestShare = 100 - principalShare;
+      
+      // Convert to degrees: 0° start from top (12 o'clock) but we start standard from top-right?
+      // typical conic from 0deg is top, but we set for readability
+      const principalDeg = (principalShare / 100) * 360;
+      
+      // Build conic-gradient: Principal color from 0deg to principalDeg, then interest color to 360deg
+      const gradient = `conic-gradient(var(--principal-color) 0deg ${principalDeg}deg, var(--interest-color) ${principalDeg}deg 360deg)`;
+      donutChart.style.background = gradient;
+      // Update inner hole percentage text
+      principalPercentSpan.textContent = `${principalShare.toFixed(1)}%`;
+    }
+    
+    // ---------- Central calculation + sync chart + update labels + storage ----------
+    let updatePending = false;
+    function fullRecalculationAndSync() {
+      if (updatePending) return;
+      updatePending = true;
+      requestAnimationFrame(() => {
+        // Enforce constraints: down payment cannot exceed loan amount
+        enforceDownPaymentLimit();
+        
+        // Also ensure loan amount and down payment after constraint update in UI
+        const loanVal = parseFloat(loanNumber.value) || 0;
+        let downVal = parseFloat(downNumber.value) || 0;
+        if (downVal > loanVal) {
+          downVal = loanVal;
+          downNumber.value = downVal;
+          downRange.value = downVal;
+        }
+        
+        // Update dynamic labels for each input
+        updateLabels();
+        
+        // Re-run mortgage core calculation
+        const { principal, totalInterest, totalCost } = computeMortgage();
+        
+        // Update donut chart (principal vs interest ratio)
+        updateDonutChart(principal, totalInterest, totalCost);
+        
+        // Save all current values to localStorage
+        saveToLocalStorage();
+        updatePending = false;
+      });
+    }
+    
+    // ---------- Bidirectional Sync Helpers (Range ↔ Number) ----------
+    function bindPair(rangeElem, numberElem, customCallback = null) {
+      // range -> number
+      rangeElem.addEventListener('input', function(e) {
+        let val = parseFloat(rangeElem.value);
+        if (isNaN(val)) val = 0;
+        numberElem.value = val;
+        if (customCallback && typeof customCallback === 'function') customCallback();
+        fullRecalculationAndSync();
+      });
+      // number -> range
+      numberElem.addEventListener('input', function(e) {
+        let val = parseFloat(numberElem.value);
+        if (isNaN(val)) val = 0;
+        // apply min/max based on element's attributes (soft clamp)
+        const min = parseFloat(numberElem.getAttribute('min'));
+        const max = parseFloat(numberElem.getAttribute('max'));
+        if (!isNaN(min)) val = Math.max(min, val);
+        if (!isNaN(max)) val = Math.min(max, val);
+        numberElem.value = val;
+        rangeElem.value = val;
+        if (customCallback && typeof customCallback === 'function') customCallback();
+        fullRecalculationAndSync();
+      });
+    }
+    
+    // Special constraint after Down Payment or Loan changes, ensure down <= loan
+    function enforceDownPaymentWrapper() {
+      enforceDownPaymentLimit();
+    }
+    
+    // ---------- LocalStorage Logic ----------
+    const STORAGE_KEY = 'mortgageCalcData';
+    
+    function saveToLocalStorage() {
+      const data = {
+        loanAmount: parseFloat(loanNumber.value) || 0,
+        downPayment: parseFloat(downNumber.value) || 0,
+        interestRate: parseFloat(rateNumber.value) || 0,
+        loanTerm: parseInt(termNumber.value, 10) || 30
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return false;
+      try {
+        const data = JSON.parse(saved);
+        if (typeof data.loanAmount === 'number') {
+          loanNumber.value = Math.max(0, data.loanAmount);
+          loanRange.value = loanNumber.value;
+        }
+        if (typeof data.downPayment === 'number') {
+          downNumber.value = Math.max(0, data.downPayment);
+          downRange.value = downNumber.value;
+        }
+        if (typeof data.interestRate === 'number') {
+          let rate = Math.min(30, Math.max(0, data.interestRate));
+          rateNumber.value = rate;
+          rateRange.value = rate;
+        }
+        if (typeof data.loanTerm === 'number') {
+          let term = Math.min(40, Math.max(1, data.loanTerm));
+          termNumber.value = term;
+          termRange.value = term;
+        }
+        // enforce downpayment consistency after load
+        enforceDownPaymentLimit();
+        updateLabels();
+        return true;
+      } catch(e) { return false; }
+    }
+    
+    // ---------- Initialize event binding, load data, initial calc ----------
+    function init() {
+      // Bind all pairs (range + number). For loan & down we add extra constraint callback.
+      bindPair(loanRange, loanNumber, enforceDownPaymentWrapper);
+      bindPair(downRange, downNumber, enforceDownPaymentWrapper);
+      bindPair(rateRange, rateNumber, null);
+      bindPair(termRange, termNumber, null);
+      
+      // additional manual safeguard: if user changes loanAmount, we must enforce downpayment constraint again.
+      loanNumber.addEventListener('change', () => {
+        enforceDownPaymentLimit();
+        fullRecalculationAndSync();
+      });
+      loanRange.addEventListener('change', () => {
+        enforceDownPaymentLimit();
+        fullRecalculationAndSync();
+      });
+      downNumber.addEventListener('change', () => {
+        enforceDownPaymentLimit();
+        fullRecalculationAndSync();
+      });
+      downRange.addEventListener('change', () => {
+        enforceDownPaymentLimit();
+        fullRecalculationAndSync();
+      });
+      
+      // Load data from localStorage if exists, else set default fallback values explicitly.
+      const hasSaved = loadFromLocalStorage();
+      if (!hasSaved) {
+        // default values as per spec: loan 300k, down 60k, rate 5%, term 30y
+        loanNumber.value = 300000;
+        loanRange.value = 300000;
+        downNumber.value = 60000;
+        downRange.value = 60000;
+        rateNumber.value = 5;
+        rateRange.value = 5;
+        termNumber.value = 30;
+        termRange.value = 30;
+        enforceDownPaymentLimit();
+        updateLabels();
+      } else {
+        // after load, ensure down payment limit and labels update
+        enforceDownPaymentLimit();
+        updateLabels();
+      }
+      
+      // Final initial compute (displays chart, monthly, etc)
+      fullRecalculationAndSync();
+    }
+    
+    // start everything once DOM ready
+    window.addEventListener('DOMContentLoaded', init);
+  })();
+</script>
+</body>
+</html>

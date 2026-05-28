@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perplexity Mortgage Calculator</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent: #00f2ff;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --radius: 16px;
+            --spacing: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            padding: var(--spacing);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: calc(var(--spacing) * 2);
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -1px;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing);
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: calc(var(--spacing) * 1.5);
+        }
+
+        .input-group {
+            margin-bottom: calc(var(--spacing) * 1.5);
+        }
+
+        .input-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-value {
+            color: var(--accent);
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            margin-bottom: 12px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--accent);
+        }
+
+        .results-card h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: calc(var(--spacing) * 1.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .monthly-payment {
+            text-align: center;
+            margin-bottom: calc(var(--spacing) * 2);
+        }
+
+        .monthly-payment-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .monthly-payment-value {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+        }
+
+        .chart-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: calc(var(--spacing) * 1.5);
+            padding: var(--spacing) 0;
+        }
+
+        .donut-chart {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donut-chart::before {
+            content: '';
+            position: absolute;
+            inset: 30px;
+            background: var(--bg-dark);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .breakdown {
+            display: grid;
+            gap: 16px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+        }
+
+        .breakdown-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .indicator-principal {
+            background: var(--accent);
+        }
+
+        .indicator-interest {
+            background: #ff006e;
+        }
+
+        .indicator-total {
+            background: #8338ec;
+        }
+
+        .breakdown-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .calculator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .monthly-payment-value {
+                font-size: 2.5rem;
+            }
+
+            .card {
+                padding: var(--spacing);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mortgage Calculator</h1>
+        
+        <div class="calculator-grid">
+            <!-- Inputs Card -->
+            <div class="card inputs-card">
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Loan Amount</span>
+                        <span class="input-value" id="loanAmountDisplay">$300,000</span>
+                    </div>
+                    <input type="range" id="loanAmountSlider" min="50000" max="2000000" step="10000" value="300000">
+                    <input type="number" id="loanAmountInput" min="0" step="1000" value="300000">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Interest Rate</span>
+                        <span class="input-value" id="interestRateDisplay">6.5%</span>
+                    </div>
+                    <input type="range" id="interestRateSlider" min="0" max="15" step="0.1" value="6.5">
+                    <input type="number" id="interestRateInput" min="0" max="100" step="0.1" value="6.5">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Loan Term</span>
+                        <span class="input-value" id="loanTermDisplay">30 years</span>
+                    </div>
+                    <input type="range" id="loanTermSlider" min="1" max="40" step="1" value="30">
+                    <input type="number" id="loanTermInput" min="1" max="50" step="1" value="30">
+                </div>
+
+                <div class="input-group">
+                    <div class="input-label">
+                        <span>Down Payment</span>
+                        <span class="input-value" id="downPaymentDisplay">$60,000</span>
+                    </div>
+                    <input type="range" id="downPaymentSlider" min="0" max="500000" step="5000" value="60000">
+                    <input type="number" id="downPaymentInput" min="0" step="1000" value="60000">
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div class="card results-card">
+                <h2>Your Monthly Payment</h2>
+                
+                <div class="monthly-payment">
+                    <div class="monthly-payment-label">Monthly Payment</div>
+                    <div class="monthly-payment-value" id="monthlyPayment">$1,517</div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="donut-chart" id="donutChart"></div>
+                </div>
+
+                <div class="breakdown">
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <div class="breakdown-indicator indicator-principal"></div>
+                            <span>Principal</span>
+                        </div>
+                        <div class="breakdown-value" id="principalAmount">$240,000</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <div class="breakdown-indicator indicator-interest"></div>
+                            <span>Total Interest</span>
+                        </div>
+                        <div class="breakdown-value" id="totalInterest">$306,120</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <div class="breakdown-indicator indicator-total"></div>
+                            <span>Total Cost</span>
+                        </div>
+                        <div class="breakdown-value" id="totalCost">$546,120</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const elements = {
+            loanAmountSlider: document.getElementById('loanAmountSlider'),
+            loanAmountInput: document.getElementById('loanAmountInput'),
+            loanAmountDisplay: document.getElementById('loanAmountDisplay'),
+            interestRateSlider: document.getElementById('interestRateSlider'),
+            interestRateInput: document.getElementById('interestRateInput'),
+            interestRateDisplay: document.getElementById('interestRateDisplay'),
+            loanTermSlider: document.getElementById('loanTermSlider'),
+            loanTermInput: document.getElementById('loanTermInput'),
+            loanTermDisplay: document.getElementById('loanTermDisplay'),
+            downPaymentSlider: document.getElementById('downPaymentSlider'),
+            downPaymentInput: document.getElementById('downPaymentInput'),
+            downPaymentDisplay: document.getElementById('downPaymentDisplay'),
+            monthlyPayment: document.getElementById('monthlyPayment'),
+            principalAmount: document.getElementById('principalAmount'),
+            totalInterest: document.getElementById('totalInterest'),
+            totalCost: document.getElementById('totalCost'),
+            donutChart: document.getElementById('donutChart')
+        };
+
+        // Sync slider and input bidirectionally
+        function syncInputs(slider, input, display, formatter) {
+            slider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                input.value = value;
+                display.textContent = formatter(value);
+                calculate();
+                saveData();
+            });
+
+            input.addEventListener('input', (e) => {
+                let value = parseFloat(e.target.value);
+                if (isNaN(value) || value < 0) value = 0;
+                slider.value = value;
+                display.textContent = formatter(value);
+                calculate();
+                saveData();
+            });
+        }
+
+        // Formatters
+        const formatCurrency = (value) => `$${Math.round(value).toLocaleString()}`;
+        const formatPercent = (value) => `${value.toFixed(1)}%`;
+        const formatYears = (value) => `${value} years`;
+
+        // Initialize input syncing
+        syncInputs(elements.loanAmountSlider, elements.loanAmountInput, elements.loanAmountDisplay, formatCurrency);
+        syncInputs(elements.interestRateSlider, elements.interestRateInput, elements.interestRateDisplay, formatPercent);
+        syncInputs(elements.loanTermSlider, elements.loanTermInput, elements.loanTermDisplay, formatYears);
+        syncInputs(elements.downPaymentSlider, elements.downPaymentInput, elements.downPaymentDisplay, formatCurrency);
+
+        // Calculate mortgage payment using standard amortization formula
+        // M = P [ r(1 + r)^n ] / [ (1 + r)^n - 1 ]
+        // M = Monthly payment, P = Principal, r = Monthly interest rate, n = Number of payments
+        function calculate() {
+            const loanAmount = parseFloat(elements.loanAmountInput.value) || 0;
+            const downPayment = parseFloat(elements.downPaymentInput.value) || 0;
+            const principal = Math.max(0, loanAmount - downPayment);
+            const annualRate = parseFloat(elements.interestRateInput.value) || 0;
+            const years = parseFloat(elements.loanTermInput.value) || 1;
+
+            const monthlyRate = annualRate / 100 / 12;
+            const numberOfPayments = years * 12;
+
+            let monthlyPayment = 0;
+            
+            if (monthlyRate === 0) {
+                // No interest case
+                monthlyPayment = principal / numberOfPayments;
+            } else {
+                // Standard amortization formula
+                monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+                                (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+            }
+
+            if (!isFinite(monthlyPayment) || isNaN(monthlyPayment)) {
+                monthlyPayment = 0;
+            }
+
+            const totalPaid = monthlyPayment * numberOfPayments;
+            const totalInterest = totalPaid - principal;
+
+            // Update display
+            elements.monthlyPayment.textContent = formatCurrency(monthlyPayment);
+            elements.principalAmount.textContent = formatCurrency(principal);
+            elements.totalInterest.textContent = formatCurrency(Math.max(0, totalInterest));
+            elements.totalCost.textContent = formatCurrency(totalPaid);
+
+            updateChart(principal, Math.max(0, totalInterest));
+        }
+
+        // Update donut chart with conic-gradient
+        function updateChart(principal, interest) {
+            const total = principal + interest;
+            if (total === 0) {
+                elements.donutChart.style.background = 'rgba(255, 255, 255, 0.1)';
+                return;
+            }
+
+            const principalPercent = (principal / total) * 100;
+            const interestPercent = (interest / total) * 100;
+
+            // Create conic gradient: principal (cyan) and interest (pink)
+            elements.donutChart.style.background = `conic-gradient(
+                #00f2ff 0% ${principalPercent}%,
+                #ff006e ${principalPercent}% 100%
+            )`;
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            const data = {
+                loanAmount: elements.loanAmountInput.value,
+                interestRate: elements.interestRateInput.value,
+                loanTerm: elements.loanTermInput.value,
+                downPayment: elements.downPaymentInput.value
+            };
+            localStorage.setItem('mortgageCalcData', JSON.stringify(data));
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const stored = localStorage.getItem('mortgageCalcData');
+            if (!stored) {
+                calculate();
+                return;
+            }
+
+            try {
+                const data = JSON.parse(stored);
+                
+                if (data.loanAmount) {
+                    elements.loanAmountSlider.value = data.loanAmount;
+                    elements.loanAmountInput.value = data.loanAmount;
+                    elements.loanAmountDisplay.textContent = formatCurrency(parseFloat(data.loanAmount));
+                }
+                
+                if (data.interestRate) {
+                    elements.interestRateSlider.value = data.interestRate;
+                    elements.interestRateInput.value = data.interestRate;
+                    elements.interestRateDisplay.textContent = formatPercent(parseFloat(data.interestRate));
+                }
+                
+                if (data.loanTerm) {
+                    elements.loanTermSlider.value = data.loanTerm;
+                    elements.loanTermInput.value = data.loanTerm;
+                    elements.loanTermDisplay.textContent = formatYears(parseFloat(data.loanTerm));
+                }
+                
+                if (data.downPayment) {
+                    elements.downPaymentSlider.value = data.downPayment;
+                    elements.downPaymentInput.value = data.downPayment;
+                    elements.downPaymentDisplay.textContent = formatCurrency(parseFloat(data.downPayment));
+                }
+
+                calculate();
+            } catch (e) {
+                console.error('Failed to load saved data:', e);
+                calculate();
+            }
+        }
+
+        // Initialize on page load
+        loadData();
+    </script>
+</body>
+</html>
