@@ -1,1 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mortgage Madness — LLM Showdown</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+    :root {
+      --bg: #0c0c0f;
+      --surface: #13131a;
+      --card: #1a1a24;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.18);
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --accent: #00f2ff;
+      --accent-dim: rgba(0,242,255,0.08);
+      --accent-glow: rgba(0,242,255,0.18);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BG ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,242,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,242,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 80px 24px 64px;
+    }
+
+    .eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--accent);
+      text-shadow: 0 0 40px var(--accent-glow);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      line-height: 1.65;
+      font-weight: 300;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      background: var(--surface);
+    }
+
+    /* ── SECTION ── */
+    section {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── CALCULATOR GRID ── */
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .calc-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calc-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-dim);
+    }
+
+    .card-header {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .model-name {
+      font-family: 'Space Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .model-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 1px solid;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .tag-openai   { color: #10a37f; border-color: rgba(16,163,127,0.35); background: rgba(16,163,127,0.07); }
+    .tag-google   { color: #4285f4; border-color: rgba(66,133,244,0.35); background: rgba(66,133,244,0.07); }
+    .tag-meta     { color: #0866ff; border-color: rgba(8,102,255,0.35); background: rgba(8,102,255,0.07); }
+    .tag-anthropic{ color: #cc785c; border-color: rgba(204,120,92,0.35); background: rgba(204,120,92,0.07); }
+    .tag-deepseek { color: #5b8dee; border-color: rgba(91,141,238,0.35); background: rgba(91,141,238,0.07); }
+    .tag-moonshot { color: #a78bfa; border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.07); }
+    .tag-alibaba  { color: #ff6a00; border-color: rgba(255,106,0,0.35); background: rgba(255,106,0,0.07); }
+    .tag-perplexity{ color: #20c997; border-color: rgba(32,201,151,0.35); background: rgba(32,201,151,0.07); }
+    .tag-google2  { color: #fbbc04; border-color: rgba(251,188,4,0.35); background: rgba(251,188,4,0.07); }
+
+    .card-body {
+      padding: 16px 22px 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .trait-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .trait-list li {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+    }
+
+    .trait-list li::before {
+      content: '›';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0px;
+    }
+
+    .card-footer {
+      padding: 14px 22px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .open-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 0.2s;
+    }
+
+    .calc-card:hover .open-btn { gap: 10px; }
+
+    .open-btn svg { width: 12px; height: 12px; }
+
+    .difficulty {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── COMPARE STRIP ── */
+    .compare-section {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 24px;
+      margin-bottom: 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .compare-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .compare-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .compare-pill {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .compare-pill:hover, .compare-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .compare-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      transition: opacity 0.2s, transform 0.15s;
+      margin-top: 20px;
+    }
+
+    .compare-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    .compare-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    /* ── IFRAME COMPARE ── */
+    .frame-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .frame-grid.cols-1 { grid-template-columns: 1fr; }
+    .frame-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .frame-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .frame-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+
+    .frame-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #121212;
+    }
+
+    .frame-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 8px 14px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .frame-label a {
+      color: var(--accent);
+      font-size: 0.55rem;
+      text-decoration: none;
+      letter-spacing: 0.15em;
+    }
+
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+      display: block;
+    }
+
+    .frame-grid.cols-2 iframe,
+    .frame-grid.cols-3 iframe { height: 500px; }
+    .frame-grid.cols-4 iframe { height: 480px; }
+
+    /* ── HIDDEN ── */
+    #compare-area { display: none; }
+    #compare-area.visible { display: block; }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 32px 24px 48px;
+      border-top: 1px solid var(--border);
+    }
+
+    footer p {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    footer em { color: var(--accent); font-style: normal; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .calc-grid { grid-template-columns: 1fr; }
+      .frame-grid.cols-2,
+      .frame-grid.cols-3,
+      .frame-grid.cols-4 { grid-template-columns: 1fr; }
+      iframe { height: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <p class="eyebrow">AI Benchmark Series</p>
+    <h1>Mortgage<br><em>Madness</em></h1>
+    <p class="subtitle">Eight LLMs. One prompt. Same design spec. See how each AI tackled a dark-mode mortgage calculator — same formula, different instincts.</p>
+    <div class="meta-row">
+      <span class="badge">8 Models</span>
+      <span class="badge">Vanilla HTML / CSS / JS</span>
+      <span class="badge">Same Prompt</span>
+    </div>
+  </header>
+
+  <!-- COMPARE STRIP -->
+  <div class="compare-section">
+    <div class="compare-inner">
+      <p class="section-label">Side-by-side compare</p>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:4px;">Pick up to 4 calculators and view them together.</p>
+      <div class="compare-row" id="pill-row">
+        <span class="compare-pill" data-file="HTML/AI-Studio-Mortgage.html" data-label="AI Studio">AI Studio</span>
+        <span class="compare-pill" data-file="HTML/ChatGPT-Mortgage.html" data-label="ChatGPT">ChatGPT</span>
+        <span class="compare-pill" data-file="HTML/Claude-Mortgage.html" data-label="Claude">Claude</span>
+        <span class="compare-pill" data-file="HTML/DeepSeek-Mortgage.html" data-label="DeepSeek">DeepSeek</span>
+        <span class="compare-pill" data-file="HTML/Gemini-Mortgage.html" data-label="Gemini">Gemini</span>
+        <span class="compare-pill" data-file="HTML/Kimi-Mortgage.html" data-label="Kimi">Kimi</span>
+        <span class="compare-pill" data-file="HTML/Perplexity-Mortgage.html" data-label="Perplexity">Perplexity</span>
+        <span class="compare-pill" data-file="HTML/Qwen-Mortgage.html" data-label="Qwen">Qwen</span>
+      </div>
+      <button class="compare-btn" id="compare-btn">Compare Selected ↗</button>
+      <p class="compare-note" id="pill-count">Select 2–4 models to compare</p>
+    </div>
+  </div>
+
+  <!-- LIVE COMPARE AREA -->
+  <section id="compare-area">
+    <p class="section-label">live comparison</p>
+    <div id="frame-grid" class="frame-grid"></div>
+  </section>
+
+  <!-- CALCULATOR CARDS -->
+  <section>
+    <p class="section-label">all entries</p>
+    <div class="calc-grid">
+
+      <a class="calc-card" href="HTML/AI-Studio-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">AI Studio</div>
+          </div>
+          <span class="model-tag tag-google2">Google</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Most verbose CSS — named every design variable</li>
+            <li>Side-by-side layout with backdrop glow blobs</li>
+            <li>Bidirectional slider binding with blur-to-clamp pattern</li>
+            <li>Gradient text on the h1 title</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Gemini 2.5 Pro</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/ChatGPT-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">ChatGPT</div>
+          </div>
+          <span class="model-tag tag-openai">OpenAI</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Offset number input to the left of the slider</li>
+            <li>Value badge inline with each label — most scannable layout</li>
+            <li>Donut uses a white-alpha segment for interest (not red)</li>
+            <li>Cleanest aria labeling among all entries</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">GPT-4o</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/Claude-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Claude</div>
+          </div>
+          <span class="model-tag tag-anthropic">Anthropic</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Monospace font throughout — terminal aesthetic</li>
+            <li>CSS custom property trick for conic-gradient degrees</li>
+            <li>Error class flashes red on invalid number input</li>
+            <li>Most detailed inline JSDoc comments</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Claude Sonnet</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/DeepSeek-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">DeepSeek</div>
+          </div>
+          <span class="model-tag tag-deepseek">DeepSeek</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Emoji in headings (📐, 📊, 🏠) — only entry to do this</li>
+            <li>requestAnimationFrame debounce on recalculation</li>
+            <li>Value highlight pill label with cyan background</li>
+            <li>Explicit donut hole div (not CSS ::after pseudo)</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">DeepSeek R1</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/Gemini-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Gemini</div>
+          </div>
+          <span class="model-tag tag-google">Google</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Uses native accent-color property on range inputs</li>
+            <li>Minimal JS — leanest codebase overall</li>
+            <li>Legend lives inside the donut hole center</li>
+            <li>Loads default values from HTML attributes, not JS</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Gemini 1.5 Pro</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/Kimi-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Kimi</div>
+          </div>
+          <span class="model-tag tag-moonshot">Moonshot AI</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>CSS custom property --principal-angle for chart animation</li>
+            <li>Most spacing variables defined — tightest design system</li>
+            <li>Shows both principal% and interest% in legend</li>
+            <li>Range slider placed before number input (reversed order)</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Kimi k1.5</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/Perplexity-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Perplexity</div>
+          </div>
+          <span class="model-tag tag-perplexity">Perplexity AI</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>Three-color donut: cyan + pink + purple for total</li>
+            <li>Largest monthly payment display (3.5rem)</li>
+            <li>Separate colored indicator dots per breakdown item</li>
+            <li>Minimal card styling — most open whitespace</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Perplexity Sonar</span>
+        </div>
+      </a>
+
+      <a class="calc-card" href="HTML/Qwen-Mortgage.html" target="_blank">
+        <div class="card-header">
+          <div>
+            <div class="model-name">Qwen</div>
+          </div>
+          <span class="model-tag tag-alibaba">Alibaba</span>
+        </div>
+        <div class="card-body">
+          <ul class="trait-list">
+            <li>CSS ::before pseudo for dollar sign prefix on inputs</li>
+            <li>Uses a named formatter object (Intl.NumberFormat instance)</li>
+            <li>Donut hole via ::after on the chart div</li>
+            <li>Most compact JS — single-letter variable names in places</li>
+          </ul>
+        </div>
+        <div class="card-footer">
+          <span class="open-btn">Open <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2V7"/></svg></span>
+          <span class="difficulty">Qwen 2.5 Max</span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <footer>
+    <p>mortgage madness · <em>ai benchmark series</em><br>
+    each calculator built from an identical prompt · same formula · same dark theme spec<br>
+    place your bets, pull the sliders, judge for yourself</p>
+  </footer>
+
+  <script>
+    const pills = document.querySelectorAll('.compare-pill');
+    const btn = document.getElementById('compare-btn');
+    const countEl = document.getElementById('pill-count');
+    const compareArea = document.getElementById('compare-area');
+    const frameGrid = document.getElementById('frame-grid');
+    let selected = [];
+
+    pills.forEach(p => {
+      p.addEventListener('click', () => {
+        const file = p.dataset.file;
+        if (p.classList.contains('active')) {
+          p.classList.remove('active');
+          selected = selected.filter(s => s.file !== file);
+        } else {
+          if (selected.length >= 4) return;
+          p.classList.add('active');
+          selected.push({ file, label: p.dataset.label });
+        }
+        const n = selected.length;
+        if (n === 0) countEl.textContent = 'Select 2–4 models to compare';
+        else if (n === 1) countEl.textContent = '1 selected — pick at least one more';
+        else countEl.textContent = `${n} selected — click Compare to load`;
+      });
+    });
+
+    btn.addEventListener('click', () => {
+      if (selected.length < 2) {
+        countEl.textContent = 'Pick at least 2 models first.';
+        return;
+      }
+
+      const n = selected.length;
+      const colClass = ['', 'cols-1', 'cols-2', 'cols-3', 'cols-4'][n];
+
+      frameGrid.className = `frame-grid ${colClass}`;
+      frameGrid.innerHTML = selected.map(s => `
+        <div class="frame-wrap">
+          <div class="frame-label">
+            <span>${s.label}</span>
+            <a href="${s.file}" target="_blank">open full ↗</a>
+          </div>
+          <iframe src="${s.file}" loading="lazy" title="${s.label} mortgage calculator"></iframe>
+        </div>
+      `).join('');
+
+      compareArea.classList.add('visible');
+      compareArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  </script>
+</body>
+</html>
